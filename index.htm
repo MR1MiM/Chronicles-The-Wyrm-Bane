@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronicles: The Wyrm-Bane</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="screen-menu" class="screen active">
+  <div id="menu-bg"></div>
+  <div id="menu-content">
+    <div id="menu-title">
+      <div id="menu-subtitle">Chronicles</div>
+      <div id="menu-main-title">THE WYRM-BANE</div>
+    </div>
+    <div id="menu-buttons">
+      <button class="menu-btn primary-btn" onclick="showScreen('screen-map')">START</button>
+      <button class="menu-btn" onclick="openSettings()">SETTINGS</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-map" class="screen">
+  <div id="map-bg"></div>
+  <div id="map-header">
+    <button class="back-btn" onclick="showScreen('screen-menu')">Back</button>
+    <h1 id="map-title">World Map</h1>
+    <div style="display:flex;gap:8px;">
+      <button class="menu-btn small-btn" onclick="openDeckEditor()">Deck</button>
+      <button class="menu-btn small-btn" onclick="openShop()">Shop</button>
+      <button class="menu-btn small-btn" onclick="openSettings()">Menu</button>
+    </div>
+  </div>
+  <div id="map-path"></div>
+  <div id="map-legend">
+    <span class="legend-item done">Cleared</span>
+    <span class="legend-item current">Available</span>
+    <span class="legend-item locked">Locked</span>
+  </div>
+</div>
+
+<div id="screen-game" class="screen">
+  <div id="particle-container"></div>
+  <div id="turn-banner" class="turn-banner"></div>
+
+  <div id="enemy-hud">
+    <div class="hud-side">
+      <div class="pile clickable-pile" onclick="openPileModal('enemy-deck')" title="Enemy Deck">Deck<span id="enemy-deck-count">30</span></div>
+      <div class="pile grave clickable-pile" onclick="openPileModal('enemy-grave')" title="Enemy Grave">Grave<span id="enemy-grave-count">0</span></div>
+    </div>
+    <div id="enemy-hp-bar-wrap">
+      <span id="enemy-name-label">Enemy</span>
+      <div id="enemy-hp-bar-bg"><div id="enemy-hp-bar-fill"></div></div>
+      <span id="enemy-hp-label">HP <span id="enemy-hp-val">20</span>/20</span>
+      <span id="enemy-mana-display" class="enemy-mana-badge">Mana <span id="enemy-mana-val">6</span></span>
+    </div>
+    <div class="hud-side hud-right">
+      <span id="turn-clock">60s</span>
+      <button class="icon-btn" onclick="openSettings()" title="Settings">Menu</button>
+    </div>
+  </div>
+
+  <div id="game-container">
+    <aside id="battle-terminal">
+      <div class="battle-terminal-header">
+        <h3>Battle Terminal</h3>
+        <button class="terminal-open-btn" onclick="openBattleLog()">Open</button>
+      </div>
+      <div id="battle-terminal-list"></div>
+    </aside>
+    <div id="arena-wrapper">
+      <div id="arena">
+        <div class="grid enemy-side" id="enemy-grid"></div>
+        <div class="grid player-side" id="player-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div id="player-stats-left">
+      <div class="stat-row">HP <span id="player-hp">20</span>/20</div>
+      <div id="player-hp-bar-bg"><div id="player-hp-bar-fill"></div></div>
+      <div class="stat-row">Mana <span id="m-val">6</span>/<span id="m-max">6</span></div>
+    </div>
+    <div class="pile clickable-pile" onclick="openPileModal('player-deck')" title="Your Deck">Deck<span id="player-deck-count">30</span></div>
+    <div id="hand-wrapper"><div id="hand"></div></div>
+    <div class="pile grave clickable-pile" onclick="openPileModal('player-grave')" title="Your Grave">Grave<span id="player-grave-count">0</span></div>
+    <button id="end-btn" onclick="nextTurn()">END TURN</button>
+  </div>
+</div>
+
+<div id="settings-overlay" onclick="closeSettings()">
+  <div id="settings-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close" onclick="closeSettings()">X</button>
+    </div>
+    <div class="settings-body">
+      <div class="setting-row">
+        <label>Volume</label>
+        <input type="range" id="vol-slider" min="0" max="100" value="35" oninput="setVolume(this.value)">
+        <span id="vol-label">35%</span>
+      </div>
+      <div class="setting-row">
+        <label>Timer</label>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="timer-toggle" checked onchange="toggleTimer(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="timer-label">ON</span>
+      </div>
+      <div id="timer-lock-note" class="setting-note">Timer can only be changed before entering battle.</div>
+      <div class="setting-row">
+        <label>Sort Cards</label>
+        <select id="sort-order" onchange="setSortOrder(this.value)">
+          <option value="faction">By Class</option>
+          <option value="name">A-Z</option>
+          <option value="mana">By Mana</option>
+          <option value="atk">By ATK</option>
+          <option value="hp">By HP</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="inspect-overlay">
+  <div id="inspect-content">
+    <div class="inspect-tint"></div>
+    <div class="inspect-data">
+      <h2 id="inspect-name"></h2>
+      <p id="inspect-ability" class="ability-text"></p>
+      <p id="inspect-lore"></p>
+      <div id="inspect-stats">
+        <span id="inspect-mana" class="mana-text"></span>
+        <span id="inspect-atk" class="atk-text"></span>
+        <span id="inspect-hp" class="hp-text"></span>
+      </div>
+      <p class="close-hint">Left-click anywhere outside to close</p>
+    </div>
+  </div>
+</div>
+
+<div id="pile-overlay" onclick="closePileModal()">
+  <div id="pile-modal" onclick="event.stopPropagation()">
+    <div id="pile-modal-header">
+      <h2 id="pile-modal-title"></h2>
+      <div class="pile-sort-controls">
+        <label>Sort:</label>
+        <select id="pile-sort-select" onchange="renderPileCards()">
+          <option value="faction">Class</option>
+          <option value="name">A-Z</option>
+          <option value="mana">Mana</option>
+          <option value="atk">ATK</option>
+          <option value="hp">HP</option>
+        </select>
+      </div>
+      <button id="pile-modal-close" onclick="closePileModal()">X</button>
+    </div>
+    <p id="pile-modal-subtitle"></p>
+    <div id="pile-modal-cards"></div>
+  </div>
+</div>
+
+<div id="deck-overlay" onclick="closeDeckEditor()">
+  <div id="deck-modal" onclick="event.stopPropagation()">
+    <div id="deck-modal-header">
+      <h2>Deck Editor</h2>
+      <div class="pile-sort-controls">
+        <label>Sort:</label>
+        <select id="deck-sort-select" onchange="renderDeckEditor()">
+          <option value="mana">Mana</option>
+          <option value="faction">Class</option>
+          <option value="name">A-Z</option>
+          <option value="atk">ATK</option>
+          <option value="hp">HP</option>
+        </select>
+        <label>Show:</label>
+        <select id="deck-filter-select" onchange="renderDeckEditor()">
+          <option value="all">All</option>
+          <option value="owned">Owned</option>
+          <option value="unowned">Unowned</option>
+        </select>
+      </div>
+      <button class="modal-close" onclick="closeDeckEditor()">X</button>
+    </div>
+    <p id="deck-modal-subtitle"></p>
+    <div id="deck-modal-cards"></div>
+  </div>
+</div>
+
+<div id="reward-overlay">
+  <div id="reward-modal">
+    <div class="modal-header">
+      <h2>Choose 2 Rewards</h2>
+    </div>
+    <p id="reward-subtitle"></p>
+    <div id="reward-cards"></div>
+    <div id="reward-actions">
+      <button id="reward-claim-btn" class="menu-btn primary-btn" onclick="claimRewardChoices()" disabled>Claim 2 Cards</button>
+    </div>
+  </div>
+</div>
+
+<div id="shop-overlay" onclick="closeShop()">
+  <div id="shop-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Monster Shop</h2>
+      <button class="modal-close" onclick="closeShop()">X</button>
+    </div>
+    <div class="settings-body">
+      <div class="setting-row">
+        <label>Crystals</label>
+        <span id="shop-crystals">0</span>
+      </div>
+      <div class="setting-row">
+        <label>Chest Cost</label>
+        <span id="shop-chest-cost">10</span>
+      </div>
+      <button class="menu-btn primary-btn" onclick="openCrystalChest()">Open Random Chest</button>
+      <p id="shop-last-drop" class="setting-note" style="display:block;margin-top:12px;">Open a chest to get a random card.</p>
+    </div>
+  </div>
+</div>
+
+<div id="gameover-overlay">
+  <div id="gameover-box">
+    <div id="gameover-icon"></div>
+    <h1 id="gameover-title"></h1>
+    <p id="gameover-sub"></p>
+    <div id="gameover-buttons">
+      <button class="menu-btn" onclick="openBattleLog()">Battle Log</button>
+      <button class="menu-btn" onclick="goToMap()">Map</button>
+      <button class="menu-btn primary-btn" onclick="retryLevel()">Retry</button>
+    </div>
+  </div>
+</div>
+
+<div id="battle-log-overlay" onclick="closeBattleLog()">
+  <div id="battle-log-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Battle Log</h2>
+      <button class="modal-close" onclick="closeBattleLog()">X</button>
+    </div>
+    <div id="battle-log-list"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
