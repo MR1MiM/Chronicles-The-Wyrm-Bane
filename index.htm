@@ -28,16 +28,40 @@
     <button class="back-btn" onclick="showScreen('screen-menu')">Back</button>
     <h1 id="map-title">World Map</h1>
     <div style="display:flex;gap:8px;">
-      <button class="menu-btn small-btn" onclick="openDeckEditor()">Deck</button>
-      <button class="menu-btn small-btn" onclick="openShop()">Shop</button>
+      <button class="menu-btn small-btn" onclick="openDeckEditor()"><img class="btn-icon" src="./public/assets/deck icon.png" alt="">Deck</button>
+      <button class="menu-btn small-btn" onclick="openInventoryModal()"><img class="btn-icon" src="./public/assets/chest icon.png" alt="">Inventory</button>
+      <button class="menu-btn small-btn" onclick="openShop()"><img class="btn-icon" src="./public/assets/shop icon.png" alt="">Shop</button>
       <button class="menu-btn small-btn" onclick="openSettings()">Menu</button>
     </div>
   </div>
-  <div id="map-path"></div>
+  <div id="map-path">
+    <div id="map-viewport" tabindex="0" aria-label="World map">
+      <div id="map-world">
+        <div id="map-level-layer"></div>
+      </div>
+      <div id="map-player">
+        <div id="map-guide-arrow"></div>
+        <div id="map-player-shadow"></div>
+        <img id="map-player-sprite" src="./public/mc animations/idle_south.gif" alt="Player character">
+      </div>
+      <div id="map-level-info" class="hidden">
+        <div class="map-level-info-header">
+          <div>
+            <div id="map-level-name">Select a level</div>
+            <div id="map-level-status">Click a circle on the map to inspect it.</div>
+          </div>
+          <button id="map-level-start" class="menu-btn small-btn" disabled>Start</button>
+        </div>
+        <div id="map-level-title"></div>
+        <div id="map-level-meta"></div>
+      </div>
+    </div>
+  </div>
   <div id="map-legend">
     <span class="legend-item done">Cleared</span>
     <span class="legend-item current">Available</span>
     <span class="legend-item locked">Locked</span>
+    <span class="legend-item">Move with WASD or Arrow Keys</span>
   </div>
 </div>
 
@@ -63,10 +87,14 @@
   </div>
 
   <div id="game-container">
+    <button id="battle-terminal-toggle" class="terminal-floating-btn" onclick="toggleBattleTerminal(true)">Terminal</button>
     <aside id="battle-terminal">
       <div class="battle-terminal-header">
         <h3>Battle Terminal</h3>
-        <button class="terminal-open-btn" onclick="openBattleLog()">Open</button>
+        <div class="terminal-actions">
+          <button class="terminal-open-btn" onclick="openBattleLog()">Log</button>
+          <button class="terminal-open-btn" onclick="toggleBattleTerminal(false)">Min</button>
+        </div>
       </div>
       <div id="battle-terminal-list"></div>
     </aside>
@@ -82,10 +110,17 @@
     <div id="player-stats-left">
       <div class="stat-row">HP <span id="player-hp">20</span>/20</div>
       <div id="player-hp-bar-bg"><div id="player-hp-bar-fill"></div></div>
-      <div class="stat-row">Mana <span id="m-val">6</span>/<span id="m-max">6</span></div>
+      <div id="player-mana-wrap">
+        <div class="stat-row">Mana <span id="m-val">6</span>/<span id="m-max">6</span></div>
+        <div id="player-mana-bar-bg"><div id="player-mana-bar-fill"></div></div>
+      </div>
     </div>
     <div class="pile clickable-pile" onclick="openPileModal('player-deck')" title="Your Deck">Deck<span id="player-deck-count">30</span></div>
     <div id="hand-wrapper"><div id="hand"></div></div>
+    <div id="card-action-bar" class="card-action-bar hidden">
+      <span id="selected-card-name">No card selected</span>
+      <button id="activate-ability-btn" class="menu-btn small-btn" onclick="activateSelectedCardAbility()">Activate</button>
+    </div>
     <div class="pile grave clickable-pile" onclick="openPileModal('player-grave')" title="Your Grave">Grave<span id="player-grave-count">0</span></div>
     <button id="end-btn" onclick="nextTurn()">END TURN</button>
   </div>
@@ -99,9 +134,14 @@
     </div>
     <div class="settings-body">
       <div class="setting-row">
-        <label>Volume</label>
-        <input type="range" id="vol-slider" min="0" max="100" value="35" oninput="setVolume(this.value)">
-        <span id="vol-label">35%</span>
+        <label>Music</label>
+        <input type="range" id="vol-slider" min="0" max="100" value="20" oninput="setVolume(this.value)">
+        <span id="vol-label">20%</span>
+      </div>
+      <div class="setting-row">
+        <label>Voices</label>
+        <input type="range" id="voice-slider" min="0" max="100" value="45" oninput="setVoiceVolume(this.value)">
+        <span id="voice-label">45%</span>
       </div>
       <div class="setting-row">
         <label>Timer</label>
@@ -112,6 +152,23 @@
         <span id="timer-label">ON</span>
       </div>
       <div id="timer-lock-note" class="setting-note">Timer can only be changed before entering battle.</div>
+      <div class="setting-row">
+        <label>High Stakes</label>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="stakes-toggle" onchange="toggleHighStakes(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="stakes-label">OFF</span>
+      </div>
+      <div class="setting-row">
+        <label>Battle Terminal</label>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="terminal-toggle" checked onchange="toggleBattleTerminalEnabled(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="terminal-label">ON</span>
+      </div>
+      <div class="setting-note" style="display:block;margin-top:-10px;">Ante mode charges 200 Gold to enter. Winning pays out the full 400 Gold pot.</div>
       <div class="setting-row">
         <label>Sort Cards</label>
         <select id="sort-order" onchange="setSortOrder(this.value)">
@@ -194,34 +251,110 @@
 <div id="reward-overlay">
   <div id="reward-modal">
     <div class="modal-header">
-      <h2>Choose 2 Rewards</h2>
+      <h2>Choose 1 Reward</h2>
     </div>
     <p id="reward-subtitle"></p>
     <div id="reward-cards"></div>
     <div id="reward-actions">
-      <button id="reward-claim-btn" class="menu-btn primary-btn" onclick="claimRewardChoices()" disabled>Claim 2 Cards</button>
+      <button id="reward-claim-btn" class="menu-btn primary-btn" onclick="claimRewardChoices()" disabled>Claim Card</button>
     </div>
+  </div>
+</div>
+
+<div id="inventory-overlay" onclick="closeInventoryModal()">
+  <div id="inventory-modal" onclick="event.stopPropagation()">
+    <div id="inventory-modal-header">
+      <h2>Items & Recipes</h2>
+      <div class="pile-sort-controls">
+        <label>Type:</label>
+        <select id="inventory-type-filter" onchange="renderInventoryModal()">
+          <option value="all">All</option>
+          <option value="items">Items</option>
+          <option value="recipes">Recipes</option>
+        </select>
+        <label>Rarity:</label>
+        <select id="inventory-rarity-filter" onchange="renderInventoryModal()">
+          <option value="all">All</option>
+          <option value="common">Common</option>
+          <option value="rare">Rare</option>
+          <option value="very_rare">Very Rare</option>
+          <option value="legendary">Legendary</option>
+          <option value="mythical">Mythical</option>
+        </select>
+        <label>Owned:</label>
+        <select id="inventory-owned-filter" onchange="renderInventoryModal()">
+          <option value="all">All</option>
+          <option value="owned">Owned</option>
+          <option value="unowned">Unowned</option>
+        </select>
+        <label>Recipe Count:</label>
+        <select id="inventory-recipe-count-filter" onchange="renderInventoryModal()">
+          <option value="all">All</option>
+          <option value="1">1+</option>
+          <option value="4">4+ Craftable</option>
+        </select>
+      </div>
+      <button class="modal-close" onclick="closeInventoryModal()">X</button>
+    </div>
+    <p id="inventory-modal-subtitle"></p>
+    <div id="inventory-actions">
+      <button id="inventory-craft-btn" class="menu-btn small-btn" onclick="craftSelectedRecipe()" disabled>Craft</button>
+      <button id="inventory-sell-btn" class="menu-btn small-btn" onclick="sellSelectedInventoryEntry()" disabled>Sell</button>
+    </div>
+    <div id="inventory-modal-cards"></div>
   </div>
 </div>
 
 <div id="shop-overlay" onclick="closeShop()">
   <div id="shop-modal" onclick="event.stopPropagation()">
     <div class="modal-header">
-      <h2>Monster Shop</h2>
+      <h2>The Shop</h2>
       <button class="modal-close" onclick="closeShop()">X</button>
+    </div>
+    <div id="shop-merchant-panel">
+      <img id="shop-merchant-sprite" src="./public/characters/merchant/merchant idle.gif" alt="Merchant">
+      <div id="shop-merchant-copy">
+        <div id="shop-merchant-name">Merchant</div>
+        <div id="shop-merchant-line">Welcome, traveler.</div>
+      </div>
     </div>
     <div class="settings-body">
       <div class="setting-row">
-        <label>Crystals</label>
-        <span id="shop-crystals">0</span>
+        <label>Gold</label>
+        <span id="shop-gold">0</span>
       </div>
-      <div class="setting-row">
-        <label>Chest Cost</label>
-        <span id="shop-chest-cost">10</span>
+      <div class="shop-quest-box">
+        <div class="shop-quest-title">Merchant Offers</div>
+        <div id="shop-offer-list" class="shop-pack-list"></div>
       </div>
-      <button class="menu-btn primary-btn" onclick="openCrystalChest()">Open Random Chest</button>
-      <p id="shop-last-drop" class="setting-note" style="display:block;margin-top:12px;">Open a chest to get a random card.</p>
+      <div class="shop-quest-box">
+        <div class="shop-quest-title">Sell to Merchant</div>
+        <div id="shop-sell-list" class="shop-pack-list"></div>
+      </div>
+      <div id="shop-pack-list" class="shop-pack-list"></div>
+      <div class="shop-quest-box">
+        <div class="shop-quest-title">Daily Quest</div>
+        <div id="daily-quest-text" class="shop-quest-text"></div>
+        <div id="daily-quest-progress" class="shop-quest-progress"></div>
+        <button id="daily-quest-claim" class="menu-btn primary-btn" onclick="claimDailyQuest()" disabled>Claim 200 Gold</button>
+      </div>
+      <p id="shop-last-drop" class="setting-note" style="display:block;margin-top:12px;">Buy a pack to unlock 5 cards.</p>
     </div>
+  </div>
+</div>
+
+<div id="rps-overlay" onclick="closeRpsOverlay()">
+  <div id="rps-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Rock Paper Scissors</h2>
+    </div>
+    <p id="rps-subtitle">Beat the enemy to decide who takes the first turn.</p>
+    <div id="rps-choices">
+      <button class="menu-btn" onclick="resolveRpsBattle('rock')">Rock</button>
+      <button class="menu-btn" onclick="resolveRpsBattle('paper')">Paper</button>
+      <button class="menu-btn" onclick="resolveRpsBattle('scissors')">Scissors</button>
+    </div>
+    <p id="rps-result">Choose your hand.</p>
   </div>
 </div>
 
